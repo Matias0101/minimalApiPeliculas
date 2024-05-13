@@ -66,6 +66,35 @@ namespace MinimalApiPeliculas.Repositorios
             }
         }
 
+        public async Task<bool> Existe(int id, string nombre)
+        {
+            using (var conexion = new SqlConnection(ConnectionString))
+            {
+                var existe = await conexion
+                    .QuerySingleAsync<bool>("Generos_ExistenPorIdYNombre",
+                    new { id, nombre },
+                    commandType: CommandType.StoredProcedure);
+                return existe;
+            }
+        }
+        public async Task<List<int>> Existen(List<int> ids)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Id", typeof(int));
+
+            foreach (var id in ids)
+            {
+                dt.Rows.Add(id);
+            }
+            using(var conexion = new SqlConnection(ConnectionString))
+            {
+                var idsGenerosExistentes = await conexion
+                    .QueryAsync<int>("Generos_ObtenerVariosPorId", new { generosIds = dt },
+                    commandType: CommandType.StoredProcedure);
+                return idsGenerosExistentes.ToList();
+            }
+        }
+
         public async Task Actualizar(Genero genero)
         {
             using (var conexion = new SqlConnection(ConnectionString))

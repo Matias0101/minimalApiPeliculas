@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using MinimalApiPeliculas.DTOs;
 using MinimalApiPeliculas.Entidades;
+using MinimalApiPeliculas.Filtros;
 using MinimalApiPeliculas.Repositorios;
 using MinimalApiPeliculas.Servicios;
 
@@ -14,13 +16,15 @@ namespace MinimalApiPeliculas.Endpoints
         private static readonly string contenedor = "actores";
         public static RouteGroupBuilder MapActores(this RouteGroupBuilder group) 
         {
-            
-            group.MapGet("/", ObtenerTodos)
-                .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("actores-get"));
+
+            group.MapGet("/", ObtenerTodos);
+               // .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("actores-get"));
             group.MapGet("/{id:int}", ObtenerPorId);
             group.MapGet("obtenerPorNombre/{nombre}", ObtenerPorNombre);
-            group.MapPost("/", Crear).DisableAntiforgery();
-            group.MapPut("/{id:int}", Actualizar).DisableAntiforgery();
+
+            group.MapPost("/", Crear).DisableAntiforgery().AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>();
+            group.MapPut("/{id:int}", Actualizar).DisableAntiforgery().AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>(); 
+            group.MapDelete("/{id:int}", Borrar);
 
 
             return group;
@@ -56,10 +60,12 @@ namespace MinimalApiPeliculas.Endpoints
             return TypedResults.Ok(actoresDTO);
         }
 
-        static async Task<Created<ActorDTO>> Crear([FromForm] CrearActorDTO crearActorDTO, 
+        static async Task<Results<Created<ActorDTO>, ValidationProblem>> 
+            Crear([FromForm] CrearActorDTO crearActorDTO, 
             IRepocitorioActores repositorio, IOutputCacheStore outputCacheStore, IMapper mapper,
             IAlmacenadorArchivos almacenadorArchivos)
         {
+           
             var actor = mapper.Map<Actor>(crearActorDTO);
 
             if(crearActorDTO.Foto is not null)
@@ -96,7 +102,22 @@ namespace MinimalApiPeliculas.Endpoints
             }
             await repositorio.Actualizar(actorParaActualizar);
             await outputCacheStore.EvictByTagAsync("actores-get", default);
-            return TypedResults.NotFound();
+            return TypedResults.NoContent();
+        }
+        static async Task <Results<NoContent,NotFound>>Borrar(int id, IRepocitorioActores repocitorio, 
+            IOutputCacheStore outputCacheStore, IAlmacenadorArchivos almacenadorArchivos)
+        {
+            var actorDB =await repocitorio.ObtenerPorId(id);
+
+            if (actorDB is null)
+            {
+                return TypedResults.NotFound();
+            }
+
+            await repocitorio.Borrar(id);
+            await almacenadorArchivos.Borrar(actorDB.Foto, contenedor);
+            await outputCacheStore.EvictByTagAsync("actores-get", default);
+            return TypedResults.NoContent();
         }
     }
 }

@@ -1,4 +1,6 @@
-using Microsoft.AspNetCore.Http.HttpResults;
+using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
+//using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
 using MinimalApiPeliculas.Endpoints;
 using MinimalApiPeliculas.Entidades;
@@ -21,11 +23,20 @@ builder.Services.AddSwaggerGen();// a midleware
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepocitorioActores,RepocitorioActores>();
+builder.Services.AddScoped<IRepositorioPeliculas, RepositorioPeliculas>();
+builder.Services.AddScoped<IRepositorioComentarios, RepositorioComentarios>();
+builder.Services.AddScoped<IRepocitorioErrores, RepocitorioErrores>();
 
 builder.Services.AddScoped<IAlmacenadorArchivos, AlmacnadorArchivosLocal>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(Program));
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddProblemDetails();
+
+builder.Services.AddAuthentication().AddJwtBearer();//para poteger endpoint
+builder.Services.AddAuthorization();
 
 //Fin del área de los servicios
 
@@ -43,6 +54,27 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseExceptionHandler(exceptionHandlerApp=> exceptionHandlerApp.Run(async context => 
+{
+    var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+
+    var excepcion = exceptionHandlerFeature?.Error!;
+
+    var error = new Error();
+    error.Fecha = DateTime.UtcNow;
+    error.MensajeDeError = excepcion.Message;
+    error.StackTrace = excepcion.StackTrace;
+
+    var repositorio = context.RequestServices.GetRequiredService<IRepocitorioErrores>();
+    await repositorio.Crear(error);
+
+    await TypedResults.BadRequest(
+        new { tipo = "error", mensaje = "ha ocurrido un mensaje de error inesperado", estatus = 500 })
+    .ExecuteAsync(context);
+}));
+
+app.UseStatusCodePages();
+
 app.UseStaticFiles();
 
 app.UseCors();
@@ -50,10 +82,19 @@ app.UseCors();
 
 app.UseOutputCache();
 
+app.UseAuthorization();//esquema tojken nugget 
+
+app.MapGet("/error", () =>
+{
+    throw new InvalidOperationException("error de ejemplo");
+});
+
 app.MapGroup("/generos").MapGeneros();//configura todos los endpoints de generos
 app.MapGroup("/actores").MapActores();
+app.MapGroup("/peliculas").MapPeliculas();
+app.MapGroup("/pelicula/{PeliculaId:int}/comentarios").MapComentarios();
 
-
+//fin de área de los middleware
 
 app.Run();
 

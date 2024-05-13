@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
 using MinimalApiPeliculas.DTOs;
 using MinimalApiPeliculas.Entidades;
+using MinimalApiPeliculas.Filtros;
 using MinimalApiPeliculas.Repositorios;
 
 namespace MinimalApiPeliculas.Endpoints
@@ -11,13 +13,14 @@ namespace MinimalApiPeliculas.Endpoints
     {
         public static RouteGroupBuilder MapGeneros(this RouteGroupBuilder group)
         {
-            group.MapGet("/", ObtenerGeneros).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("generos-get"));// establese una duracion de 15 segundos de memoria para no volver a llamar al endpoint
+            group.MapGet("/", ObtenerGeneros)
+                .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("generos-get")).RequireAuthorization();// establese una duracion de 15 segundos de memoria para no volver a llamar al endpoint
 
             group.MapGet("/{id:int}", ObtenerGenerosPorId);
 
-            group.MapPost("/", CrearGenero);
+            group.MapPost("/", CrearGenero).AddEndpointFilter<FiltroValidaciones<CrearGeneroDTO>>();// al filtro le paso el dto a validar para <T>
 
-            group.MapPut("/{id:int}", ActualizarGenero);
+            group.MapPut("/{id:int}", ActualizarGenero).AddEndpointFilter<FiltroValidaciones<CrearGeneroDTO>>();
 
             group.MapDelete("/{id:int}", BorrarGenero);
             return group;
@@ -57,35 +60,25 @@ namespace MinimalApiPeliculas.Endpoints
         }
 
 
-        static async Task<Created<GeneroDTO>> CrearGenero(CrearGeneroDTO crearGeneroDTO, 
-            IRepositorioGeneros repositorioGeneros,
+        static async Task<Results<Created<GeneroDTO>,ValidationProblem>> 
+            CrearGenero(CrearGeneroDTO crearGeneroDTO, IRepositorioGeneros repositorio,
             IOutputCacheStore outputCacheStore, IMapper mapper)
         {
-            //var genero = new Genero
-            //{
-            //    Nombre = crearGeneroDTO.Nombre
-            //};
+            
             var genero = mapper.Map<Genero>(crearGeneroDTO); //mapea desde crearGenero a Genero
 
-            var id = await repositorioGeneros.CrearGenero(genero);
+            var id = await repositorio.CrearGenero(genero);
             await outputCacheStore.EvictByTagAsync("generos-get", default);//limpiamos el cache despues de un muevo genero
-
-            //var generoDTO = new GeneroDTO
-            //{
-            //    Id = id,
-            //    Nombre = genero.Nombre
-            //};reemplazo por AutoMapper
             var generoDTO =mapper.Map<GeneroDTO>(genero);
-
             return TypedResults.Created($"/generos/{id}", generoDTO);
         }
 
-
-        static async Task<Results<NoContent, NotFound>> ActualizarGenero(int id, 
+        static async Task<Results<NoContent, NotFound, ValidationProblem>> ActualizarGenero(int id, 
             CrearGeneroDTO crearGeneroDTO, 
             IRepositorioGeneros repositorio,
             IOutputCacheStore outputCacheStore,IMapper mapper)
         {
+            
             var existe = await repositorio.Existe(id);
 
             if (!existe)

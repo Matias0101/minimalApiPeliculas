@@ -70,6 +70,7 @@ namespace MinimalApiPeliculas.Repositorios
                         actor.Foto
                     },
                     commandType: CommandType.StoredProcedure);
+                actor.Id = id;
                 return id;
 
             }
@@ -91,6 +92,25 @@ namespace MinimalApiPeliculas.Repositorios
                 var existe = await conexion.QuerySingleAsync<bool>("Actores_ExistePorId",
                     new { id }, commandType: CommandType.StoredProcedure);
                 return existe;
+            }
+        }
+
+        public async Task<List<int>> Existen (List<int> ids)
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Id", typeof(int));
+
+            foreach (var id in ids)
+            {
+                dt.Rows.Add(id);
+            }
+            using (var conexion = new SqlConnection(connectionString))
+            {
+                var idsGenerosExistentes = await conexion.QueryAsync<int>
+                    ("Actores_ObtenerVariosPorId", new { actoresIds = dt },
+                    commandType: CommandType.StoredProcedure);
+
+                return idsGenerosExistentes.ToList();
             }
         }
         public async Task Borrar(int id)
