@@ -1,11 +1,15 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Identity;
+
 //using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.IdentityModel.Tokens;
 using MinimalApiPeliculas.Endpoints;
 using MinimalApiPeliculas.Entidades;
 using MinimalApiPeliculas.Repositorios;
 using MinimalApiPeliculas.Servicios;
+using MinimalApiPeliculas.Utilidades;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +30,7 @@ builder.Services.AddScoped<IRepocitorioActores,RepocitorioActores>();
 builder.Services.AddScoped<IRepositorioPeliculas, RepositorioPeliculas>();
 builder.Services.AddScoped<IRepositorioComentarios, RepositorioComentarios>();
 builder.Services.AddScoped<IRepocitorioErrores, RepocitorioErrores>();
+builder.Services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
 
 builder.Services.AddScoped<IAlmacenadorArchivos, AlmacnadorArchivosLocal>();
 builder.Services.AddHttpContextAccessor();
@@ -35,8 +40,22 @@ builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddAuthentication().AddJwtBearer();//para poteger endpoint
+builder.Services.AddAuthentication().AddJwtBearer(opciones=>opciones.TokenValidationParameters= new TokenValidationParameters
+{
+    ValidateIssuer=false, 
+    ValidateAudience=false, 
+    ValidateLifetime=true, 
+    ValidateIssuerSigningKey=true,
+    //IssuerSigningKey=Llaves.ObtenerLlave(builder.Configuration).First(),
+    IssuerSigningKeys = Llaves.ObtenerTodasLasLlave(builder.Configuration),
+    ClockSkew = TimeSpan.Zero
+
+});//para poteger endpoint
 builder.Services.AddAuthorization();
+
+builder.Services.AddTransient<IUserStore<IdentityUser>, UsuarioStore>();
+builder.Services.AddIdentityCore<IdentityUser>();
+builder.Services.AddTransient<SignInManager<IdentityUser>>();
 
 //Fin del área de los servicios
 
@@ -68,7 +87,8 @@ app.UseExceptionHandler(exceptionHandlerApp=> exceptionHandlerApp.Run(async cont
     var repositorio = context.RequestServices.GetRequiredService<IRepocitorioErrores>();
     await repositorio.Crear(error);
 
-    await TypedResults.BadRequest(
+    //await TypedResults.BadRequest(
+    await Results.BadRequest(
         new { tipo = "error", mensaje = "ha ocurrido un mensaje de error inesperado", estatus = 500 })
     .ExecuteAsync(context);
 }));
@@ -82,7 +102,7 @@ app.UseCors();
 
 app.UseOutputCache();
 
-app.UseAuthorization();//esquema tojken nugget 
+//app.UseAuthorization();//esquema tojken nugget 
 
 app.MapGet("/error", () =>
 {
@@ -93,6 +113,7 @@ app.MapGroup("/generos").MapGeneros();//configura todos los endpoints de generos
 app.MapGroup("/actores").MapActores();
 app.MapGroup("/peliculas").MapPeliculas();
 app.MapGroup("/pelicula/{PeliculaId:int}/comentarios").MapComentarios();
+app.MapGroup("/usuarios").MapUsuarios();
 
 //fin de área de los middleware
 
