@@ -4,7 +4,7 @@ using MinimalApiPeliculas.Repositorios;
 namespace MinimalApiPeliculas.Servicios
 {
     public class UsuarioStore : IUserStore<IdentityUser>, IUserEmailStore<IdentityUser>,
-        IUserPasswordStore<IdentityUser>
+        IUserPasswordStore<IdentityUser>//, IUserClaimStore<IdentityUser>
     {
 
         private readonly IRepositorioUsuarios repositorioUsuarios;

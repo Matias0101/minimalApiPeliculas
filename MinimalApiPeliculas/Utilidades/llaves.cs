@@ -5,9 +5,9 @@ namespace MinimalApiPeliculas.Utilidades
     public static class Llaves
     {
         public const string IssuerPropio = "nuestra-app";
-        public const string SeccionLlaves = "Authentication:Schemes:Bearer:SigningKeys";
-        public const string SeccionLlaves_Emisor = "Issuer";
-        public const string SeccionLlaves_Valor = "Value";
+        private const string SeccionLlaves = "Authentication:Schemes:Bearer:SigningKeys";
+        private const string SeccionLlaves_Emisor = "Issuer";
+        private const string SeccionLlaves_Valor = "Value";
 
         public static IEnumerable<SecurityKey> ObtenerLlave(IConfiguration configuration)
             => ObtenerLlave(configuration, IssuerPropio);

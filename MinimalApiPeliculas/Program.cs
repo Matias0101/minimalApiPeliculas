@@ -33,6 +33,9 @@ builder.Services.AddScoped<IRepocitorioErrores, RepocitorioErrores>();
 builder.Services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
 
 builder.Services.AddScoped<IAlmacenadorArchivos, AlmacnadorArchivosLocal>();
+
+builder.Services.AddTransient<IServicioUsuarios, ServicioUsuarios>();
+
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(Program));
@@ -40,17 +43,37 @@ builder.Services.AddAutoMapper(typeof(Program));
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddAuthentication().AddJwtBearer(opciones=>opciones.TokenValidationParameters= new TokenValidationParameters
-{
-    ValidateIssuer=false, 
-    ValidateAudience=false, 
-    ValidateLifetime=true, 
-    ValidateIssuerSigningKey=true,
-    //IssuerSigningKey=Llaves.ObtenerLlave(builder.Configuration).First(),
-    IssuerSigningKeys = Llaves.ObtenerTodasLasLlave(builder.Configuration),
-    ClockSkew = TimeSpan.Zero
+//builder.Services.AddAuthentication().AddJwtBearer(opciones=>
+//{
+//    opciones.MapInboundClaims = false;
 
-});//para poteger endpoint
+//    opciones.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = false,
+//        ValidateAudience = false,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        //IssuerSigningKey=Llaves.ObtenerLlave(builder.Configuration).First(),
+//        IssuerSigningKeys = Llaves.ObtenerTodasLasLlave(builder.Configuration),
+//        ClockSkew = TimeSpan.Zero
+
+//    };
+//});//para poteger endpoint
+builder.Services.AddAuthentication().AddJwtBearer(opciones =>
+{
+    opciones.MapInboundClaims = false;
+
+    opciones.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        //IssuerSigningKey = Llaves.ObtenerLlave(builder.Configuration).First(),
+        IssuerSigningKeys = Llaves.ObtenerTodasLasLlave(builder.Configuration),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 builder.Services.AddAuthorization();
 
 builder.Services.AddTransient<IUserStore<IdentityUser>, UsuarioStore>();
@@ -102,7 +125,7 @@ app.UseCors();
 
 app.UseOutputCache();
 
-//app.UseAuthorization();//esquema tojken nugget 
+app.UseAuthorization();//esquema tojken nugget 
 
 app.MapGet("/error", () =>
 {

@@ -16,6 +16,10 @@ namespace MinimalApiPeliculas.Endpoints
         {
             group.MapPost("/registrar", Registrar)
                 .AddEndpointFilter<FiltroValidaciones<CredencialesUsuarioDTO>>();
+
+            group.MapPost("/login", Login)
+                .AddEndpointFilter<FiltroValidaciones<CredencialesUsuarioDTO>>();
+
             return group;
         }
 
@@ -40,6 +44,30 @@ namespace MinimalApiPeliculas.Endpoints
                 return TypedResults.BadRequest(resultado.Errors);
             }
         }
+
+        static async Task<Results<Ok<RespuestaAutenticacionDTO>,BadRequest<string>>> Login (
+            CredencialesUsuarioDTO credencialesUsuarioDTO, [FromServices] SignInManager<IdentityUser> signInManager,
+            [FromServices] UserManager<IdentityUser>userManager, IConfiguration configuration)
+        {
+            var usuario = await userManager.FindByEmailAsync(credencialesUsuarioDTO.Email);
+
+            if (usuario is null)
+            {
+                return TypedResults.BadRequest("Login incorrecto");
+            }
+
+            var resultado = await signInManager.CheckPasswordSignInAsync(usuario, credencialesUsuarioDTO.Password, lockoutOnFailure: false);
+            
+            if (resultado.Succeeded)
+            {
+                var respuestaAutentificacion = ConstruirToken(credencialesUsuarioDTO,configuration);
+                return TypedResults.Ok(respuestaAutentificacion);
+            }
+            else
+            {
+                return TypedResults.BadRequest("Login incorrecto");
+            }
+        }
         private static RespuestaAutenticacionDTO ConstruirToken(CredencialesUsuarioDTO credencialesUsuarioDTO, 
             IConfiguration configuration) 
         {
@@ -62,7 +90,7 @@ namespace MinimalApiPeliculas.Endpoints
             return new RespuestaAutenticacionDTO
             {
                 Token = token,
-                Expiracion= expiracion,
+                Expiracion = expiracion
             };
         
         }
