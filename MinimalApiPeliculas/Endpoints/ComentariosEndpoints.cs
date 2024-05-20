@@ -47,7 +47,8 @@ namespace MinimalApiPeliculas.Endpoints
             return TypedResults.Ok(comentariosDTO);
         }
 
-        static async Task< Results<Ok<ComentarioDTO>, NotFound>> ObtenerPorId(int peliculaId, int id, IRepositorioComentarios repositorio, IMapper mapper)
+        static async Task< Results<Ok<ComentarioDTO>, NotFound>> ObtenerPorId(int peliculaId, int id, 
+            IRepositorioComentarios repositorio, IMapper mapper)
         {
             var comentario = await repositorio.ObtenerPorId(id);
 

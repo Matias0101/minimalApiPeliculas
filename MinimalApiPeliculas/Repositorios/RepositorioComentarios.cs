@@ -65,11 +65,11 @@ namespace MinimalApiPeliculas.Repositorios
             }
         }
 
-        public async Task Actualizar(Comentario Comentario)
+        public async Task Actualizar(Comentario comentario)
         {
             using (var conexion = new SqlConnection(connectionString))
             {
-                await conexion.ExecuteAsync("Comentarios_Actualizar", Comentario,
+                await conexion.ExecuteAsync("Comentarios_Actualizar", comentario,
                    commandType: CommandType.StoredProcedure);
 
             }

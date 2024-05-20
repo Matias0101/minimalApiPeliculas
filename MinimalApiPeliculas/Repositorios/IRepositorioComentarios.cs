@@ -4,7 +4,7 @@ namespace MinimalApiPeliculas.Repositorios
 {
     public interface IRepositorioComentarios
     {
-        Task Actualizar(Comentario Comentario);
+        Task Actualizar(Comentario comentario);
         Task Borrar(int id);
         Task<int> Crear(Comentario comentario);
         Task<bool> Existe(int id);
