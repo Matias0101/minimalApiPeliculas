@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using MinimalApiPeliculas.Repositorios;
+using System.Security.Claims;
 
 namespace MinimalApiPeliculas.Servicios
 {
     public class UsuarioStore : IUserStore<IdentityUser>, IUserEmailStore<IdentityUser>,
-        IUserPasswordStore<IdentityUser>//, IUserClaimStore<IdentityUser>
+        IUserPasswordStore<IdentityUser>, IUserClaimStore<IdentityUser>
     {
 
         private readonly IRepositorioUsuarios repositorioUsuarios;
@@ -14,7 +15,10 @@ namespace MinimalApiPeliculas.Servicios
             this.repositorioUsuarios = repositorioUsuarios;
         }
 
-
+        public async Task AddClaimsAsync(IdentityUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken)
+        {
+            await repositorioUsuarios.AsignarClaims(user, claims);
+        }
 
         public async Task<IdentityResult> CreateAsync(IdentityUser user, 
             CancellationToken cancellationToken)
@@ -48,6 +52,11 @@ namespace MinimalApiPeliculas.Servicios
             CancellationToken cancellationToken)
         {
             return await repositorioUsuarios.BuscarUsuarioPorEmail(normalizedUserName);
+        }
+
+        public async Task<IList<Claim>> GetClaimsAsync(IdentityUser user, CancellationToken cancellationToken)
+        {
+            return await repositorioUsuarios.ObtenerClaims(user);
         }
 
         public Task<string?> GetEmailAsync(IdentityUser user, 
@@ -89,7 +98,22 @@ namespace MinimalApiPeliculas.Servicios
             return Task.FromResult(user.Email);
         }
 
+        public Task<IList<IdentityUser>> GetUsersForClaimAsync(Claim claim, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<bool> HasPasswordAsync(IdentityUser user, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task RemoveClaimsAsync(IdentityUser user, IEnumerable<Claim> claims, CancellationToken cancellationToken)
+        {
+            await repositorioUsuarios.RemoverClaims(user, claims);
+        }
+
+        public Task ReplaceClaimAsync(IdentityUser user, Claim claim, Claim newClaim, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -131,7 +155,7 @@ namespace MinimalApiPeliculas.Servicios
 
         public Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            return Task.FromResult(IdentityResult.Success);
         }
     }
 }

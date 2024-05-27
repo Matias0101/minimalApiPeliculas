@@ -158,5 +158,41 @@ namespace MinimalApiPeliculas.Repositorios
 
             }
         }
+
+        public async Task<List<Pelicula>> Filtrar(PeliculasFiltrarDTO filtroPeliculasDTO)
+        {
+            using (var conexion = new SqlConnection(connectionString))
+            {
+                var peliculas = await conexion.QueryAsync<Pelicula>("Peliculas_Filtrar",
+                    new
+                    {
+                        filtroPeliculasDTO.Pagina,
+                        filtroPeliculasDTO.RecordsPorPagina,
+                        filtroPeliculasDTO.Titulo,
+
+                        filtroPeliculasDTO.GeneroId,
+                        filtroPeliculasDTO.ProximosEstrenos,
+                        filtroPeliculasDTO.EnCines,
+
+                        filtroPeliculasDTO.OrdenAscendente,
+                        filtroPeliculasDTO.CampoOrdenar,
+
+                    }, commandType: CommandType.StoredProcedure);
+
+                var cantidadPeliculas = await conexion.QuerySingleAsync<int>("Peliculas_Cantidad",
+                    new
+                    {
+                        filtroPeliculasDTO.Titulo,
+                        filtroPeliculasDTO.GeneroId,
+                        filtroPeliculasDTO.ProximosEstrenos,
+                        filtroPeliculasDTO.EnCines
+
+                    }, commandType: CommandType.StoredProcedure);
+                httpContext.Response.Headers.Append("cantidadTotalRegistros",
+                    cantidadPeliculas.ToString());
+
+                return peliculas.ToList();
+            }
+        }
     }
 }

@@ -1,14 +1,18 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+
 
 //using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MinimalApiPeliculas.Endpoints;
 using MinimalApiPeliculas.Entidades;
 using MinimalApiPeliculas.Repositorios;
 using MinimalApiPeliculas.Servicios;
+using MinimalApiPeliculas.Swagger;
 using MinimalApiPeliculas.Utilidades;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +27,47 @@ opciones.AddDefaultPolicy(configuracion =>
 
 builder.Services.AddOutputCache();//configuro cache
 builder.Services.AddEndpointsApiExplorer();//configurmos swagger
-builder.Services.AddSwaggerGen();// a midleware
+builder.Services.AddSwaggerGen(c=>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Peliculas API",
+        Description = "Este es un web api para trabajar con datos de peliculas",
+        Contact = new OpenApiContact
+        {
+            Email = "mmainero@jus.gob.ar",
+            Name = "Mainero Matias",
+            Url = new Uri("https://github.com/Matias0101/minimalApiPeliculas/tree/master")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "MIT",
+            Url = new Uri("https://opensourse.org/license/mit/")
+        }
+    });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Autorization",
+        Type = SecuritySchemeType.ApiKey,
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+    c.OperationFilter<FiltroAutorizacion>();
+    //c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    //{
+    //    {
+    //        new OpenApiSecurityScheme
+    //        {
+    //            Reference = new OpenApiReference
+    //            {
+    //                Type= ReferenceType.SecurityScheme,
+    //                Id="Bearer"
+    //            }
+    //        }, new string[]{}
+    //    }
+    //});
+
+});// a midleware
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepocitorioActores,RepocitorioActores>();
@@ -74,7 +118,11 @@ builder.Services.AddAuthentication().AddJwtBearer(opciones =>
         ClockSkew = TimeSpan.Zero
     };
 });
-builder.Services.AddAuthorization();
+
+builder.Services.AddAuthorization(opciomes =>
+{
+    opciomes.AddPolicy("esadmin", politica => politica.RequireClaim("esadmin"));
+});
 
 builder.Services.AddTransient<IUserStore<IdentityUser>, UsuarioStore>();
 builder.Services.AddIdentityCore<IdentityUser>();
@@ -130,6 +178,15 @@ app.UseAuthorization();//esquema tojken nugget
 app.MapGet("/error", () =>
 {
     throw new InvalidOperationException("error de ejemplo");
+});
+
+app.MapPost("/modelbinding", ([FromQuery]string? nombre) =>
+{
+    if (nombre is null)
+    {
+        nombre = "Vacío";
+    }
+    return TypedResults.Ok(nombre);
 });
 
 app.MapGroup("/generos").MapGeneros();//configura todos los endpoints de generos

@@ -3,11 +3,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.OpenApi.Models;
 using MinimalApiPeliculas.DTOs;
 using MinimalApiPeliculas.Entidades;
 using MinimalApiPeliculas.Filtros;
 using MinimalApiPeliculas.Repositorios;
 using MinimalApiPeliculas.Servicios;
+using MinimalApiPeliculas.Utilidades;
 
 namespace MinimalApiPeliculas.Endpoints
 {
@@ -17,23 +19,34 @@ namespace MinimalApiPeliculas.Endpoints
         public static RouteGroupBuilder MapActores(this RouteGroupBuilder group) 
         {
 
-            group.MapGet("/", ObtenerTodos);
-               // .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("actores-get"));
+            group.MapGet("/", ObtenerTodos)
+                 .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("actores-get"))
+                .AgregarParametrosPaginacionOpenApi();
+
+
             group.MapGet("/{id:int}", ObtenerPorId);
             group.MapGet("obtenerPorNombre/{nombre}", ObtenerPorNombre);
 
-            group.MapPost("/", Crear).DisableAntiforgery().AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>();
-            group.MapPut("/{id:int}", Actualizar).DisableAntiforgery().AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>(); 
-            group.MapDelete("/{id:int}", Borrar);
+            group.MapPost("/", Crear).DisableAntiforgery()
+                .AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>()
+                .RequireAuthorization("esadmin")
+                .WithOpenApi();
+
+            group.MapPut("/{id:int}", Actualizar).DisableAntiforgery()
+                .AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>()
+                .RequireAuthorization("esadmin")
+                .WithOpenApi(); 
+            
+            group.MapDelete("/{id:int}", Borrar).RequireAuthorization("esadmin");
 
 
             return group;
         }
 
         static async Task<Ok<List<ActorDTO>>> ObtenerTodos (IRepocitorioActores repositorio, IMapper mapper,
-            int pagina = 1, int recordsPorPagina = 10)
+            PaginacionDTO paginacion)
         {
-            var paginacion = new PaginacionDTO { Pagina = pagina, RecordsPorpagina = recordsPorPagina };
+           // var paginacion = new PaginacionDTO { Pagina = pagina, RecordsPorpagina = recordsPorPagina };
             var actores = await repositorio.ObtenerTodos(paginacion);
             var actoresDTO = mapper.Map<List<ActorDTO>>(actores);
             return TypedResults.Ok(actoresDTO);

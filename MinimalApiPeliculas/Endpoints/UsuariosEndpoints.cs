@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MinimalApiPeliculas.DTOs;
 using MinimalApiPeliculas.Filtros;
+using MinimalApiPeliculas.Servicios;
 using MinimalApiPeliculas.Utilidades;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -19,6 +20,16 @@ namespace MinimalApiPeliculas.Endpoints
 
             group.MapPost("/login", Login)
                 .AddEndpointFilter<FiltroValidaciones<CredencialesUsuarioDTO>>();
+
+            group.MapPost("/haceradmin", HacerAdmin)
+                .AddEndpointFilter<FiltroValidaciones<EditarClaimDto>>()
+                .RequireAuthorization("esadmin");
+
+            group.MapPost("/removeradmin", RemoverAdmin)
+                .AddEndpointFilter<FiltroValidaciones<EditarClaimDto>>()
+                .RequireAuthorization("esadmin");
+
+            group.MapGet("/renovarToken", RenovarToken).RequireAuthorization();
 
             return group;
         }
@@ -36,7 +47,8 @@ namespace MinimalApiPeliculas.Endpoints
 
             if (resultado.Succeeded) 
             {
-                var credencialesRespuesta = ConstruirToken(credencialesUsuarioDTO, configuration);
+                var credencialesRespuesta = 
+                    await ConstruirToken(credencialesUsuarioDTO, configuration, userManager);
                 return TypedResults.Ok(credencialesRespuesta);
             }
             else
@@ -60,7 +72,8 @@ namespace MinimalApiPeliculas.Endpoints
             
             if (resultado.Succeeded)
             {
-                var respuestaAutentificacion = ConstruirToken(credencialesUsuarioDTO,configuration);
+                var respuestaAutentificacion = 
+                    await ConstruirToken(credencialesUsuarioDTO,configuration, userManager);
                 return TypedResults.Ok(respuestaAutentificacion);
             }
             else
@@ -68,14 +81,59 @@ namespace MinimalApiPeliculas.Endpoints
                 return TypedResults.BadRequest("Login incorrecto");
             }
         }
-        private static RespuestaAutenticacionDTO ConstruirToken(CredencialesUsuarioDTO credencialesUsuarioDTO, 
-            IConfiguration configuration) 
+
+        static async Task <Results<NoContent,NotFound>>HacerAdmin(EditarClaimDto editarClaimDto,
+            [FromServices] UserManager<IdentityUser> userManager)
+        {
+            var usuario = await userManager.FindByEmailAsync (editarClaimDto.Email);
+            if(usuario is null)
+            {
+                return TypedResults.NotFound();
+            }
+            await userManager.AddClaimAsync(usuario, new Claim("esadmin", "true"));
+            return TypedResults.NoContent();
+        }
+
+        static async Task<Results<NoContent, NotFound>> RemoverAdmin (EditarClaimDto editarClaimDto,
+            [FromServices] UserManager<IdentityUser> userManager)
+        {
+            var usuario = await userManager.FindByEmailAsync(editarClaimDto.Email);
+            if (usuario is null)
+            {
+                return TypedResults.NotFound();
+            }
+            await userManager.RemoveClaimAsync(usuario, new Claim("esadmin", "true"));
+            return TypedResults.NoContent();
+        }
+
+        public async static Task<Results<Ok<RespuestaAutenticacionDTO>,NotFound>> RenovarToken(
+            IServicioUsuarios servicioUsuarios, IConfiguration configuration,
+            [FromServices] UserManager<IdentityUser> userManager)
+        {
+            var usuario = await servicioUsuarios.ObtenerUsuario();
+            if (usuario is null)
+            {
+                return TypedResults.NotFound();
+            }
+            var credencialesUsuarioDTO = new CredencialesUsuarioDTO { Email = usuario.Email! };
+            var respuestaAutenticacionDTO = await ConstruirToken(credencialesUsuarioDTO, configuration, userManager);
+
+            return TypedResults.Ok(respuestaAutenticacionDTO);
+        }
+
+        private async static Task <RespuestaAutenticacionDTO>
+            ConstruirToken(CredencialesUsuarioDTO credencialesUsuarioDTO, 
+            IConfiguration configuration,UserManager<IdentityUser>userManager) 
         {
             var claims = new List<Claim>
             {
                 new Claim("email", credencialesUsuarioDTO.Email),
                 new Claim ("lo que yo quiera", "cualquier otro valor")
             };
+            var usuario = await userManager.FindByNameAsync(credencialesUsuarioDTO.Email);
+            var claimDB = await userManager.GetClaimsAsync(usuario!);
+
+            claims.AddRange(claimDB);
 
             var llave = Llaves.ObtenerLlave(configuration);
             var creds= new SigningCredentials(llave.First(), SecurityAlgorithms.HmacSha256);

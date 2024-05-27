@@ -1,0 +1,9 @@
+mmainero: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1tYWluZXJvQGhvdG1haWwuY29tIiwibG8gcXVlIHlvIHF1aWVyYSI6ImN1YWxxdWllciBvdHJvIHZhbG9yIiwiZXNhZG1pbiI6InRydWUiLCJleHAiOjE3NDgzNDg2Mzh9.Gql462ih5Tdj0YTP3mw93lrBIbEy2kPJ-JJjXQXC35c
+Matu: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1hdHVAaG90bWFpbC5jb20iLCJsbyBxdWUgeW8gcXVpZXJhIjoiY3VhbHF1aWVyIG90cm8gdmFsb3IiLCJleHAiOjE3NDgzNDgyMjB9.-Orzcf4Hp_RaG1izLaiHZJUrksQqydj7MBeNpRXTkpw
+*****
+para comenzar hay que loguerse 
+matias@hotmail pass: aA123456!
+
+en la ventana Authorize para el login
+
+ecribimos: Bearer espacio, luego el token generado!

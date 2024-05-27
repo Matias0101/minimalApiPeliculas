@@ -13,5 +13,6 @@ namespace MinimalApiPeliculas.Repositorios
         Task<bool> Existe(int id);
         Task<Pelicula?> ObtenerPorId(int id);
         Task<List<Pelicula>> ObtenerTodos(PaginacionDTO paginacionDTO);
+        Task<List<Pelicula>> Filtrar(PeliculasFiltrarDTO peliculasFiltrar);
     }
 }

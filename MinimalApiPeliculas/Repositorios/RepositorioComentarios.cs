@@ -69,8 +69,14 @@ namespace MinimalApiPeliculas.Repositorios
         {
             using (var conexion = new SqlConnection(connectionString))
             {
-                await conexion.ExecuteAsync("Comentarios_Actualizar", comentario,
-                   commandType: CommandType.StoredProcedure);
+                //await conexion.ExecuteAsync("Comentarios_Actualizar", comentario,
+                await conexion.ExecuteAsync("Comentarios_Actualizar", new
+                {
+                    comentario.Cuerpo,
+                    comentario.PeliculaId,
+                    comentario.Id
+                },
+                  commandType: CommandType.StoredProcedure);
 
             }
         }
