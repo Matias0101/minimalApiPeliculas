@@ -25,7 +25,14 @@ opciones.AddDefaultPolicy(configuracion =>
     configuracion.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
 }));//cualquier pagina web podra comunicarce 
 
-builder.Services.AddOutputCache();//configuro cache
+//builder.Services.AddOutputCache();//configuro cache
+
+builder.Services.AddStackExchangeRedisOutputCache(opciones =>
+{
+    opciones.Configuration = builder.Configuration.GetConnectionString("redis");
+});
+
+
 builder.Services.AddEndpointsApiExplorer();//configurmos swagger
 builder.Services.AddSwaggerGen(c=>
 {

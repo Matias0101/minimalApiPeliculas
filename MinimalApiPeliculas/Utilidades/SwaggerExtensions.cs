@@ -78,7 +78,12 @@ namespace MinimalApiPeliculas.Utilidades
                     In = ParameterLocation.Query,
                     Schema = new OpenApiSchema
                     {
-                        Type = "string"
+                        Type = "string",
+                        Enum= new List<IOpenApiAny>()
+                        {
+                            new OpenApiString("Titulo"),
+                            new OpenApiString("FechaLanzamiento")
+                        }
 
                     }
                 });
